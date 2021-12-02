@@ -1,5 +1,6 @@
+var express = require("express");
+var bodyParser = require("body-parser");
 var AWS = require("aws-sdk");
-const { create } = require("domain");
 AWS.config.update({
     region: "eu-west-1"
 });
@@ -35,6 +36,7 @@ const create_tables = () => {
 }
 
 const get_from_s3 = async() => {
+    console.log("Getting data from S3 bucket.");
     const s3 = new AWS.S3(); // Pass in opts to S3 if necessary
 
     var params = {
@@ -49,7 +51,6 @@ const get_from_s3 = async() => {
 const populate_tables = (movies) => {
     console.log("Importing movies into DynamoDB. Please wait.");
 
-    // var allMovies = JSON.parse(fs.readFileSync('moviedata.json', 'utf8'));
     var allMovies = JSON.parse(movies);
     let p = new Promise(resolve => {
         allMovies.forEach(function(movie) {
@@ -79,7 +80,6 @@ const create_db = async() => {
     dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
         if(!err){   // If describeTable doesn't throw an error, it means the table exists.
             console.log('Table already exists.');
-            delete_db();
         }
         else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
             create_tables();
@@ -90,16 +90,22 @@ const create_db = async() => {
     });
 }
 
-const delete_db = () => {
-    var params = {
-        TableName : "Movies"
-    };
-    
-    dynamodb.deleteTable(params, function(err, data) {
-        if (err) {
-            console.error("Unable to delete table. Error JSON:", JSON.stringify(err, null, 2));
-        } else {
-            console.log("Deleted table. Table description JSON:", JSON.stringify(data, null, 2));
+const delete_db = async() => {
+    dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
+        if(err){   // If describeTable throws an error, it means the table does not exists.
+            console.log('Table does not exist.');
+        }
+        else{       // If describeTable throws an error, the table exists, the function proceeds to delete the table.
+            var params = {
+                TableName : "Movies"
+            };
+            dynamodb.deleteTable(params, function(err, data) {
+                if (err) {
+                    console.error("Unable to delete table. Error JSON:", JSON.stringify(err, null, 2));
+                } else {
+                    console.log("Deleted table. Table description JSON:", JSON.stringify(data, null, 2));
+                }
+            });
         }
     });
 }
@@ -134,19 +140,48 @@ const query_db = (year, title_searched) => {
     });
 }
 
-// get_from_s3();
+const server = async() => {
+    const port = 8080;
+    var app = express();
+    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.json());
+
+    // const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    // let publicPath= path.resolve(__dirname,"public")
+    // app.use(express.static(publicPath))
+    
+
+    // app.get('/', (req, res) => {
+    //     res.sendFile('./client.html', { root: __dirname });
+    // });
+    
+    app.get('/create', async(req, res) => {
+        await create_db();
+        res.send();
+    })
+
+    app.get('/query', async(req, res) => {
+        const year = parseInt(req.query.year);
+        await query_db(year, req.query.title);
+        // await query_db(2013, "D");
+        res.send();
+    })
+
+    app.get('/delete', async(req, res) => {
+        await delete_db();
+        res.send();
+    })
+    
+    var server = app.listen(port, function () {
+       var host = server.address().address;
+       var port = server.address().port;
+       
+       console.log("Example app listening at http://%s:%s", host, port);
+    })
+}
+
 // create_db();
 // delete_db();
-query_db(2013, "D");
+// query_db(2013, "D");
 
-// const get_func = async() => {
-//     var movie_data;
-//     const get_prom = new Promise(resolve => {
-//         movie_data = get_from_s3();
-//         resolve(movie_data);
-//     })
-//     await get_prom;
-//     console.log(movie_data);
-// }
-
-// get_func();
+server();
