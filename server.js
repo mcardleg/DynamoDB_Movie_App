@@ -19,8 +19,8 @@ const create_tables = () => {
             { AttributeName: "title", AttributeType: "S" }
         ],
         ProvisionedThroughput: {       
-            ReadCapacityUnits: 10, 
-            WriteCapacityUnits: 10
+            ReadCapacityUnits: 20, 
+            WriteCapacityUnits: 20
         }
     };
 
@@ -61,7 +61,9 @@ const create_db = async() => {
     const p = new Promise(resolve => {
         create_tables();
         resolve();
-    }).then(populate_tables());
+    })
+    await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
+    populate_tables();
 }
 
 const delete_db = () => {
@@ -108,6 +110,8 @@ const query_db = (year, title_searched) => {
     });
 }
 
-// create_db();
+// create_tables();
+// populate_tables();
+create_db();
 // delete_db();
-query_db(2013, "A Field");
+// query_db(2013, "D");
