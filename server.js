@@ -1,9 +1,10 @@
 var AWS = require("aws-sdk");
+const { create } = require("domain");
 AWS.config.update({
     region: "eu-west-1"
 });
-var dynamodb = new AWS.DynamoDB();
 var fs = require('fs');
+var dynamodb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 
@@ -33,37 +34,60 @@ const create_tables = () => {
     });
 }
 
-const populate_tables = () => {
+const get_from_s3 = async() => {
+    const s3 = new AWS.S3(); // Pass in opts to S3 if necessary
+
+    var params = {
+    Bucket: 'csu44000assignment220',
+    Key: 'moviedata.json'
+    }
+
+    const object = (await (s3.getObject(params).promise())).Body.toString('utf-8');
+    return object;
+}
+
+const populate_tables = (movies) => {
     console.log("Importing movies into DynamoDB. Please wait.");
 
-    var allMovies = JSON.parse(fs.readFileSync('moviedata.json', 'utf8'));
-    allMovies.forEach(function(movie) {
-        var params = {
-            TableName: "Movies",
-            Item: {
-                "year":  movie.year,
-                "title": movie.title,
-                "info":  movie.info
+    // var allMovies = JSON.parse(fs.readFileSync('moviedata.json', 'utf8'));
+    var allMovies = JSON.parse(movies);
+    let p = new Promise(resolve => {
+        allMovies.forEach(function(movie) {
+            var params = {
+                TableName: "Movies",
+                Item: {
+                    "year":  movie.year,
+                    "title": movie.title,
+                    "info":  movie.info
+                }
+            };
+    
+            docClient.put(params, function(err, data) {
+            if (err) {
+                console.log("Insertion error.")
+                // console.error("Unable to add movie", movie.title, ". Error JSON:", JSON.stringify(err, null, 2));
+            } else {
+                console.log("Insertion success.")
+                // console.log("PutItem succeeded:", movie.title);
             }
-        };
-
-        docClient.put(params, function(err, data) {
-        if (err) {
-            console.error("Unable to add movie", movie.title, ". Error JSON:", JSON.stringify(err, null, 2));
-        } else {
-            console.log("PutItem succeeded:", movie.title);
-        }
+            });
         });
     });
 }
 
 const create_db = async() => {
-    const p = new Promise(resolve => {
-        create_tables();
-        resolve();
-    })
-    await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
-    populate_tables();
+    dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
+        if(!err){   // If describeTable doesn't throw an error, it means the table exists.
+            console.log('Table already exists.');
+            delete_db();
+        }
+        else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
+            create_tables();
+            const movie_data = await get_from_s3();
+            await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
+            populate_tables(movie_data);
+        }
+    });
 }
 
 const delete_db = () => {
@@ -110,8 +134,19 @@ const query_db = (year, title_searched) => {
     });
 }
 
-// create_tables();
-// populate_tables();
-create_db();
+// get_from_s3();
+// create_db();
 // delete_db();
-// query_db(2013, "D");
+query_db(2013, "D");
+
+// const get_func = async() => {
+//     var movie_data;
+//     const get_prom = new Promise(resolve => {
+//         movie_data = get_from_s3();
+//         resolve(movie_data);
+//     })
+//     await get_prom;
+//     console.log(movie_data);
+// }
+
+// get_func();
