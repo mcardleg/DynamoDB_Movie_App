@@ -9,9 +9,9 @@
 
     <div class="inputs">
         <br><br>
-        <button type="button" v-on:click="send_create()">Create Database</button>
-        <button type="button" v-on:click="send_delete()">Delete Database</button>
-        <!-- <br><br><br><br><br>
+        <button type="button" v-on:click="send('create')">Create Database</button>
+        <button type="button" v-on:click="send('delete')">Delete Database</button>
+        <br><br><br><br><br>
         <span>Year:</span>
         <br>
         <input v-model="year">
@@ -20,7 +20,7 @@
         <br>
         <input v-model="title">
         <br><br>
-        <button type="button" v-on:click="send_query()">Query Database</button> -->
+        <button type="button" v-on:click="send('query')">Query Database</button>
         <br><br><br><br><br><br>
         <input type="hidden" ref="results_ref">
         <span v-if="show">{{server_response}}</span>
@@ -33,48 +33,32 @@
         el: ".inputs",
         data: {
             show: false,
-            server_response: ''
+            server_response: '',
+            year: null,
+            title: null
         },
         methods: {
-            async send_create() {
-                let url = 'http://localhost:8080/create'
+            async send(action) {
+                let url = 'http://localhost:8080/' + action
+                if(action == 'query'){
+                    url = url + '?year=' + this.year + '&title=' + this.title;
+                }
 
                 var requestOptions = {
                     method: 'GET',
                     redirect: 'follow',
                 };
 
-                console.log("Telling server to create database.");
+                console.log("Telling server to " + action + " database.");
 
-                let prom = fetch(url, requestOptions)
-                    .then(response => {
-                        console.log(response);
-                        send_request.response = String(response);
+                let prom = await fetch(url, requestOptions).catch(error => console.log('error', error))
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        send_request.server_response = data.message;
+                        send_request.show = true;        //add code to change this back to false after 5 sec
                     })
                     .catch(error => console.log('error', error));
-
-                send_request.server_response = prom.response;
-                send_request.show = true;               //add code to change this back to false after 5 sec
-            },
-            async send_delete() {
-                let url = 'http://localhost:8080/delete'
-
-                var requestOptions = {
-                    method: 'GET',
-                    redirect: 'follow',
-                };
-
-                console.log("Telling server to delete database.");
-
-                let prom = fetch(url, requestOptions)
-                    .then(response => {
-                        console.log(reponse);
-                        send_request.response = String(response);
-                    })
-                    .catch(error => console.log('error', error));
-
-                send_request.server_response = prom.response;
-                send_request.show = true;               //add code to change this back to false after 5 sec
             }
         }
     });

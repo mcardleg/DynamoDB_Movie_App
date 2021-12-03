@@ -72,7 +72,7 @@ const populate_tables = (movies) => {
             }
             });
         });
-    });
+    }).catch(error => console.log('error', error));
 }
 
 const create_db = async() => {
@@ -83,13 +83,13 @@ const create_db = async() => {
             }
             else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
                 create_tables();
-                // const movie_data = await get_from_s3();
-                // await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
-                // populate_tables(movie_data);
+                const movie_data = await get_from_s3();
+                await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
+                populate_tables(movie_data);
                 resolve("Table was created and populated.");            
             }
         });
-    });
+    }).catch(error => console.log('error', error));
     return prom;
 };
 
@@ -113,7 +113,7 @@ const delete_db = async() => {
                 });
             }
         });
-    });
+    }).catch(error => console.log('error', error));
     return prom;
 }
 
@@ -134,21 +134,18 @@ const query_db = (year, title_searched) => {    //add rating to query, allow que
         }
     };
 
-    docClient.query(params, function(err, data) {
-        if (err) {
-            console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
-            response = "Query failed.";
-        } else {
-            console.log("Query succeeded.");
-            data.Items.forEach(function(item) {
-                console.log(" -", item.year + ": " + item.title + " ... " + item.info.genres
-                + " ... " + item.info.actors[0]);
-                response = " -", item.year + ": " + item.title + " ... " + item.info.genres
-                + " ... " + item.info.actors[0];
-            });
-        }
-    });
-    return response;
+    let prom = new Promise(resolve => {
+        docClient.query(params, function(err, data) {
+            if (err) {
+                console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
+                resolve("Query failed.");
+            } else {
+                resolve(data);
+            }
+        });
+    }).catch(error => console.log('error', error));
+
+    return prom;
 }
 
 const server = async() => {
@@ -166,22 +163,22 @@ const server = async() => {
     });
     
     app.get('/create', async(req, res) => {
-        var response = await create_db();
-        console.log(response);
-        res.send(response);
+        var message = await create_db();
+        console.log(message);
+        res.send({message});
     })
 
     app.get('/query', async(req, res) => {
         const year = parseInt(req.query.year);
-        var response = await query_db(year, req.query.title);
-        console.log(response);
-        res.send(response);
+        var message = await query_db(year, req.query.title);
+        console.log(message);
+        res.send({message});
     })
 
     app.get('/delete', async(req, res) => {
-        var response = await delete_db();
-        console.log(response);
-        res.send(response);
+        var message = await delete_db();
+        console.log(message);
+        res.send({message});
     })
     
     var server = app.listen(port, function () {
@@ -191,9 +188,5 @@ const server = async() => {
        console.log("Example app listening at http://%s:%s", host, port);
     })
 }
-
-// create_db();
-// delete_db();
-// query_db(2013, "D");
 
 server();
