@@ -30,8 +30,6 @@ const create_tables = () => {
     dynamodb.createTable(params, function(err, data) {
         if (err) {
             console.error("Unable to create table. Error JSON:", JSON.stringify(err, null, 2));
-        } else {
-            console.log("Created table.");
         }
     });
 }
@@ -78,32 +76,28 @@ const populate_tables = (movies) => {
 }
 
 const create_db = async() => {
-    var response;
-    let prom = dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
-        if(!err){   // If describeTable doesn't throw an error, it means the table exists.
-            // console.log('Table already exists.');
-            response = "Table already exists.";
-            resolve(response);
-        }
-        else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
-            create_tables();
-            // const movie_data = await get_from_s3();
-            // await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
-            // populate_tables(movie_data);
-            response = "Table was created and populated.";       
-            resolve(response);     
-        }
-        }).promise();
+    let prom = await new Promise (resolve => {
+        dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
+            if(!err){   // If describeTable doesn't throw an error, it means the table exists.
+                resolve("Table already exists.");
+            }
+            else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
+                create_tables();
+                // const movie_data = await get_from_s3();
+                // await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
+                // populate_tables(movie_data);
+                resolve("Table was created and populated.");            
+            }
+        });
+    });
     return prom;
-}
+};
 
 const delete_db = async() => {
-    var response;
     let prom = await new Promise(resolve => {
         dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
             if(err){   // If describeTable throws an error, it means the table does not exists.
-                // console.log('Table does not exist.');
-                response = "Table does not exist.";
+                resolve("Table does not exist.");
             }
             else{       // If describeTable throws an error, the table exists, the function proceeds to delete the table.
                 var params = {
@@ -112,15 +106,13 @@ const delete_db = async() => {
                 dynamodb.deleteTable(params, function(err, data) {
                     if (err) {
                         console.error("Unable to delete table. Error JSON:", JSON.stringify(err, null, 2));
-                        response = "Table could not be deleted.";
+                        resolve("Table could not be deleted.");
                     } else {
-                        console.log("Deleted table.");
-                        response = "Table was deleted.";
+                        resolve("Table was deleted.");
                     }
                 });
             }
         });
-        resolve(response);
     });
     return prom;
 }

@@ -23,7 +23,7 @@
         <button type="button" v-on:click="send_query()">Query Database</button> -->
         <br><br><br><br><br><br>
         <input type="hidden" ref="results_ref">
-        <span v-if="show">{{response}}</span>
+        <span v-if="show">{{server_response}}</span>
         <br><br><br>
     </div>
 
@@ -33,7 +33,7 @@
         el: ".inputs",
         data: {
             show: false,
-            response: ''
+            server_response: ''
         },
         methods: {
             async send_create() {
@@ -53,7 +53,7 @@
                     })
                     .catch(error => console.log('error', error));
 
-                // send_request.response = prom.response;
+                send_request.server_response = prom.response;
                 send_request.show = true;               //add code to change this back to false after 5 sec
             },
             async send_delete() {
@@ -73,7 +73,7 @@
                     })
                     .catch(error => console.log('error', error));
 
-                // send_request.response = prom.response;
+                send_request.server_response = prom.response;
                 send_request.show = true;               //add code to change this back to false after 5 sec
             }
         }
