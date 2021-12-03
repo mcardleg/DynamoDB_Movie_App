@@ -1,5 +1,6 @@
 var express = require("express");
 var bodyParser = require("body-parser");
+var path = require("path");
 var AWS = require("aws-sdk");
 AWS.config.update({
     region: "eu-west-1"
@@ -30,7 +31,7 @@ const create_tables = () => {
         if (err) {
             console.error("Unable to create table. Error JSON:", JSON.stringify(err, null, 2));
         } else {
-            console.log("Created table. Table description JSON:", JSON.stringify(data, null, 2));
+            console.log("Created table.");
         }
     });
 }
@@ -77,40 +78,55 @@ const populate_tables = (movies) => {
 }
 
 const create_db = async() => {
-    dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
+    var response;
+    let prom = dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
         if(!err){   // If describeTable doesn't throw an error, it means the table exists.
-            console.log('Table already exists.');
+            // console.log('Table already exists.');
+            response = "Table already exists.";
+            resolve(response);
         }
         else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
             create_tables();
-            const movie_data = await get_from_s3();
-            await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
-            populate_tables(movie_data);
+            // const movie_data = await get_from_s3();
+            // await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
+            // populate_tables(movie_data);
+            response = "Table was created and populated.";       
+            resolve(response);     
         }
-    });
+        }).promise();
+    return prom;
 }
 
 const delete_db = async() => {
-    dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
-        if(err){   // If describeTable throws an error, it means the table does not exists.
-            console.log('Table does not exist.');
-        }
-        else{       // If describeTable throws an error, the table exists, the function proceeds to delete the table.
-            var params = {
-                TableName : "Movies"
-            };
-            dynamodb.deleteTable(params, function(err, data) {
-                if (err) {
-                    console.error("Unable to delete table. Error JSON:", JSON.stringify(err, null, 2));
-                } else {
-                    console.log("Deleted table. Table description JSON:", JSON.stringify(data, null, 2));
-                }
-            });
-        }
+    var response;
+    let prom = await new Promise(resolve => {
+        dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
+            if(err){   // If describeTable throws an error, it means the table does not exists.
+                // console.log('Table does not exist.');
+                response = "Table does not exist.";
+            }
+            else{       // If describeTable throws an error, the table exists, the function proceeds to delete the table.
+                var params = {
+                    TableName : "Movies"
+                };
+                dynamodb.deleteTable(params, function(err, data) {
+                    if (err) {
+                        console.error("Unable to delete table. Error JSON:", JSON.stringify(err, null, 2));
+                        response = "Table could not be deleted.";
+                    } else {
+                        console.log("Deleted table.");
+                        response = "Table was deleted.";
+                    }
+                });
+            }
+        });
+        resolve(response);
     });
+    return prom;
 }
 
-const query_db = (year, title_searched) => {
+const query_db = (year, title_searched) => {    //add rating to query, allow query with null in one of the fields
+    var response;
     console.log("Querying for movies from " + year + " with titles starting with " + title_searched);
 
     var params = {
@@ -129,15 +145,18 @@ const query_db = (year, title_searched) => {
     docClient.query(params, function(err, data) {
         if (err) {
             console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
+            response = "Query failed.";
         } else {
             console.log("Query succeeded.");
             data.Items.forEach(function(item) {
-                console.log(" -", item.year + ": " + item.title
-                + " ... " + item.info.genres
+                console.log(" -", item.year + ": " + item.title + " ... " + item.info.genres
                 + " ... " + item.info.actors[0]);
+                response = " -", item.year + ": " + item.title + " ... " + item.info.genres
+                + " ... " + item.info.actors[0];
             });
         }
     });
+    return response;
 }
 
 const server = async() => {
@@ -146,30 +165,31 @@ const server = async() => {
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
 
-    // const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    // let publicPath= path.resolve(__dirname,"public")
-    // app.use(express.static(publicPath))
+    let publicPath= path.resolve(__dirname,"public")
+    app.use(express.static(publicPath))
     
 
-    // app.get('/', (req, res) => {
-    //     res.sendFile('./client.html', { root: __dirname });
-    // });
+    app.get('/', (req, res) => {
+        res.sendFile('./movieclient.html', { root: __dirname });
+    });
     
     app.get('/create', async(req, res) => {
-        await create_db();
-        res.send();
+        var response = await create_db();
+        console.log(response);
+        res.send(response);
     })
 
     app.get('/query', async(req, res) => {
         const year = parseInt(req.query.year);
-        await query_db(year, req.query.title);
-        // await query_db(2013, "D");
-        res.send();
+        var response = await query_db(year, req.query.title);
+        console.log(response);
+        res.send(response);
     })
 
     app.get('/delete', async(req, res) => {
-        await delete_db();
-        res.send();
+        var response = await delete_db();
+        console.log(response);
+        res.send(response);
     })
     
     var server = app.listen(port, function () {
