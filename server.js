@@ -58,10 +58,11 @@ const populate_tables = (movies) => {
                 Item: {
                     "year":  movie.year,
                     "title": movie.title,
-                    "info":  movie.info
+                    "rating":  movie.info.rating,
+                    "genre": movie.info.genres
                 }
             };
-    
+
             docClient.put(params, function(err, data) {
             if (err) {
                 console.log("Insertion error.")
@@ -119,19 +120,22 @@ const delete_db = async() => {
     return prom;
 }
 
-const query_db = (year, title_searched) => {    //add rating to query, allow query with null in one of the fields
-    console.log("Querying for movies from " + year + " with titles starting with " + title_searched);
+const query_db = (year, title_searched, rating_searched) => {    //add rating to query, allow query with null in one of the fields
+    console.log("Querying for movies from " + year + " with titles starting with " 
+        + title_searched + " and ratings greater than " + rating_searched);
 
     var params = {
         TableName : "Movies",
-        ProjectionExpression:"#yr, title, info.rating, info.genres[0]",
+        ProjectionExpression:"#yr, title, rating, genre",
         KeyConditionExpression: "#yr = :yyyy and begins_with (title, :title_searched)",
+        FilterExpression: "rating >= :rating_searched",
         ExpressionAttributeNames:{
             "#yr": "year"
         },
         ExpressionAttributeValues: {
             ":yyyy": year,
-            ":title_searched": title_searched
+            ":title_searched": title_searched,
+            ":rating_searched": rating_searched
         }
     };
 
@@ -171,7 +175,7 @@ const server = async() => {
     })
 
     app.get('/query', async(req, res) => {
-        var message = await query_db(parseInt(req.query.year), req.query.title);
+        var message = await query_db(parseInt(req.query.year), req.query.title, parseInt(req.query.rating));
         res.send({message});
     })
 

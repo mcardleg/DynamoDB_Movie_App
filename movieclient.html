@@ -9,8 +9,8 @@
 
     <div class="app">
         <br><br>
-        <button type="button" v-on:click="send('create')">Create Database</button>
-        <button type="button" v-on:click="send('delete')">Delete Database</button>
+        <button type="button" v-on:click="create_delete('create')">Create Database</button>
+        <button type="button" v-on:click="create_delete('delete')">Delete Database</button>
         <br><br><br><br><br>
         <span>Year:</span>
         <br>
@@ -19,6 +19,10 @@
         <span>Title:</span>
         <br>
         <input v-model="title">
+        <br><br>
+        <span>Rating:</span>
+        <br>
+        <input v-model="rating">
         <br><br>
         <button type="button" v-on:click="send_query()">Query Database</button>
         <br><br><br><br><br><br>
@@ -38,8 +42,8 @@
             <tr v-for="value in table_data" :key="value.field">
                 <td>{{value.title}}</td>
                 <td>{{value.year}}</td>
-                <td>{{value.info.rating}}</td>
-                <td>{{value.info.genres[0]}}</td>
+                <td>{{value.rating}}</td>
+                <td>{{value.genre[0]}}</td>
             </tr>
         </table>
     </div>
@@ -62,18 +66,19 @@
         data: {
             year: null,
             title: null,
+            rating: null,
             show_response: false,
             server_response: '',
             show_table: false,
             table_data:{}
         },
         methods: {
-            send: send,
+            create_delete: create_delete,
             send_query: send_query
         }
     });
 
-    async function send(action) {
+    async function create_delete(action) {
         let url = 'http://localhost:8080/' + action
 
         var requestOptions = {
@@ -93,7 +98,7 @@
     }
 
     async function send_query() {
-        let url = 'http://localhost:8080/query/?year=' + this.year + '&title=' + this.title;
+        let url = 'http://localhost:8080/query/?year=' + this.year + '&title=' + this.title + '&rating=' + this.rating;
 
         var requestOptions = {
             method: 'GET',
