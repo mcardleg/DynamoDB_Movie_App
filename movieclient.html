@@ -7,7 +7,7 @@
 
 <body>
 
-    <div class="inputs">
+    <div class="app">
         <br><br>
         <button type="button" v-on:click="send('create')">Create Database</button>
         <button type="button" v-on:click="send('delete')">Delete Database</button>
@@ -20,48 +20,97 @@
         <br>
         <input v-model="title">
         <br><br>
-        <button type="button" v-on:click="send('query')">Query Database</button>
+        <button type="button" v-on:click="send_query()">Query Database</button>
         <br><br><br><br><br><br>
+
         <input type="hidden" ref="results_ref">
-        <span v-if="show">{{server_response}}</span>
+        <span v-if="show_response">{{server_response}}</span>
         <br><br><br>
+
+        <table v-if="show_table">
+            <tr>
+                <th>Title</th>
+                <th>Year Of Release</th>
+                <th>Rating</th>
+                <th>Genre</th>
+            </tr>
+
+            <tr v-for="value in table_data" :key="value.field">
+                <td>{{value.title}}</td>
+                <td>{{value.year}}</td>
+                <td>{{value.info.rating}}</td>
+                <td>{{value.info.genres[0]}}</td>
+            </tr>
+        </table>
     </div>
+
+    <style>
+        table{
+            border-collapse:collapse;
+            width: 60%;
+        }
+        td, th {
+            border:1px solid #000000;
+            text-align: center;
+        }
+    </style>
 
     <script>
     
-    var send_request = new Vue({
-        el: ".inputs",
+    var app = new Vue({
+        el: ".app",
         data: {
-            show: false,
-            server_response: '',
             year: null,
-            title: null
+            title: null,
+            show_response: false,
+            server_response: '',
+            show_table: false,
+            table_data:{}
         },
         methods: {
-            async send(action) {
-                let url = 'http://localhost:8080/' + action
-                if(action == 'query'){
-                    url = url + '?year=' + this.year + '&title=' + this.title;
-                }
-
-                var requestOptions = {
-                    method: 'GET',
-                    redirect: 'follow',
-                };
-
-                console.log("Telling server to " + action + " database.");
-
-                let prom = await fetch(url, requestOptions).catch(error => console.log('error', error))
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data);
-                        send_request.server_response = data.message;
-                        send_request.show = true;        //add code to change this back to false after 5 sec
-                    })
-                    .catch(error => console.log('error', error));
-            }
+            send: send,
+            send_query: send_query
         }
     });
+
+    async function send(action) {
+        let url = 'http://localhost:8080/' + action
+
+        var requestOptions = {
+            method: 'GET',
+            redirect: 'follow',
+        };
+
+        console.log("Telling server to " + action + " database.");
+
+        let prom = await fetch(url, requestOptions).catch(error => console.log('error', error))
+            .then(response => response.json())
+            .then(data => {
+                app.server_response = data.message;
+                app.show_response = true;        //add code to change this back to false after 5 sec
+            })
+            .catch(error => console.log('error', error));
+    }
+
+    async function send_query() {
+        let url = 'http://localhost:8080/query/?year=' + this.year + '&title=' + this.title;
+
+        var requestOptions = {
+            method: 'GET',
+            redirect: 'follow',
+        };
+
+        console.log("Telling server to query database.");
+
+        let prom = await fetch(url, requestOptions).catch(error => console.log('error', error))
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+                app.table_data = data.message;
+                app.show_table = true;        //add code to change this back to false after 5 sec
+            })
+            .catch(error => console.log('error', error));
+    }
 
     </script>
 </body>

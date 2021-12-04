@@ -36,7 +36,7 @@ const create_tables = () => {
 
 const get_from_s3 = async() => {
     console.log("Getting data from S3 bucket.");
-    const s3 = new AWS.S3(); // Pass in opts to S3 if necessary
+    const s3 = new AWS.S3();
 
     var params = {
     Bucket: 'csu44000assignment220',
@@ -103,11 +103,13 @@ const delete_db = async() => {
                 var params = {
                     TableName : "Movies"
                 };
-                dynamodb.deleteTable(params, function(err, data) {
+                dynamodb.deleteTable(params, async function(err, data) {
                     if (err) {
                         console.error("Unable to delete table. Error JSON:", JSON.stringify(err, null, 2));
                         resolve("Table could not be deleted.");
                     } else {
+                        console.log("Deleting table")
+                        await dynamodb.waitFor("tableNotExists", {TableName: "Movies"}).promise();
                         resolve("Table was deleted.");
                     }
                 });
@@ -118,12 +120,11 @@ const delete_db = async() => {
 }
 
 const query_db = (year, title_searched) => {    //add rating to query, allow query with null in one of the fields
-    var response;
     console.log("Querying for movies from " + year + " with titles starting with " + title_searched);
 
     var params = {
         TableName : "Movies",
-        ProjectionExpression:"#yr, title, info.genres, info.actors[0]",
+        ProjectionExpression:"#yr, title, info.rating, info.genres[0]",
         KeyConditionExpression: "#yr = :yyyy and begins_with (title, :title_searched)",
         ExpressionAttributeNames:{
             "#yr": "year"
@@ -140,7 +141,8 @@ const query_db = (year, title_searched) => {    //add rating to query, allow que
                 console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
                 resolve("Query failed.");
             } else {
-                resolve(data);
+                console.log(data);
+                resolve(data.Items);
             }
         });
     }).catch(error => console.log('error', error));
@@ -169,9 +171,7 @@ const server = async() => {
     })
 
     app.get('/query', async(req, res) => {
-        const year = parseInt(req.query.year);
-        var message = await query_db(year, req.query.title);
-        console.log(message);
+        var message = await query_db(parseInt(req.query.year), req.query.title);
         res.send({message});
     })
 
