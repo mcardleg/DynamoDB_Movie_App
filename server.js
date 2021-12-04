@@ -48,32 +48,29 @@ const get_from_s3 = async() => {
 }
 
 const populate_tables = (movies) => {
+    let prom;
     console.log("Importing movies into DynamoDB. Please wait.");
 
     var allMovies = JSON.parse(movies);
-    let p = new Promise(resolve => {
-        allMovies.forEach(function(movie) {
-            var params = {
-                TableName: "Movies",
-                Item: {
-                    "year":  movie.year,
-                    "title": movie.title,
-                    "rating":  movie.info.rating,
-                    "genre": movie.info.genres
-                }
-            };
-
-            docClient.put(params, function(err, data) {
-            if (err) {
-                console.log("Insertion error.")
-                // console.error("Unable to add movie", movie.title, ". Error JSON:", JSON.stringify(err, null, 2));
-            } else {
-                console.log("Insertion success.")
-                // console.log("PutItem succeeded:", movie.title);
+    allMovies.forEach(function(movie) {
+        var params = {
+            TableName: "Movies",
+            Item: {
+                "year":  movie.year,
+                "title": movie.title,
+                "rating":  movie.info.rating,
+                "genre": movie.info.genres
             }
-            });
-        });
-    }).catch(error => console.log('error', error));
+        };
+
+        prom = docClient.put(params, function(err, data) {
+            if (err) {
+                console.error("Unable to add movie", movie.title, ". Error JSON:", JSON.stringify(err, null, 2));
+            } 
+        }).promise().catch(error => console.log('error', error));
+    });
+
+    return prom;
 }
 
 const create_db = async() => {
@@ -86,7 +83,7 @@ const create_db = async() => {
                 create_tables();
                 const movie_data = await get_from_s3();
                 await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
-                populate_tables(movie_data);
+                await populate_tables(movie_data);
                 resolve("Table was created and populated.");            
             }
         });
