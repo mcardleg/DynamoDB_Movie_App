@@ -5,17 +5,16 @@ var AWS = require("aws-sdk");
 AWS.config.update({
     region: "eu-west-1"
 });
-var fs = require('fs');
 var dynamodb = new AWS.DynamoDB();
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 
-const create_tables = () => {
+const create_tables = () => {   //Creates Movie table, with year and title as key.
     var params = {
         TableName : "Movies",
         KeySchema: [       
-            { AttributeName: "year", KeyType: "HASH"},  //Partition key
-            { AttributeName: "title", KeyType: "RANGE" }  //Sort key
+            { AttributeName: "year", KeyType: "HASH"},
+            { AttributeName: "title", KeyType: "RANGE" }
         ],
         AttributeDefinitions: [       
             { AttributeName: "year", AttributeType: "N" },
@@ -34,7 +33,7 @@ const create_tables = () => {
     });
 }
 
-const get_from_s3 = async() => {
+const get_from_s3 = async() => {    //Returns with movie data from S3 Bucket.
     console.log("Getting data from S3 bucket.");
     const s3 = new AWS.S3();
 
@@ -47,7 +46,7 @@ const get_from_s3 = async() => {
     return object;
 }
 
-const populate_tables = (movies) => {
+const populate_tables = (movies) => {   //Puts year, title, rating and primary genre into the table
     let prom;
     console.log("Importing movies into DynamoDB. Please wait.");
 
@@ -70,16 +69,16 @@ const populate_tables = (movies) => {
         }).promise().catch(error => console.log('error', error));
     });
 
-    return prom;
+    return prom;    //This data is not used, but returning a promise allows async await to be used on this function.
 }
 
-const create_db = async() => {
+const create_db = async() => {  //Checks if db already exists, if not calls create_tables and populate_tables. Returns response to send to client.
     let prom = await new Promise (resolve => {
         dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
             if(!err){   // If describeTable doesn't throw an error, it means the table exists.
                 resolve("Table already exists.");
             }
-            else{       // If describeTable throws an error, the table does not exist, the function proceeds to create and populate the table.
+            else{       // If describeTable throws an error, the table does not exist.
                 create_tables();
                 const movie_data = await get_from_s3();
                 await dynamodb.waitFor("tableExists", {TableName: "Movies"}).promise(); 
@@ -91,7 +90,7 @@ const create_db = async() => {
     return prom;
 };
 
-const delete_db = async() => {
+const delete_db = async() => {  //checks if db exists, if so deletes the table.
     let prom = await new Promise(resolve => {
         dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
             if(err){   // If describeTable throws an error, it means the table does not exists.
@@ -117,7 +116,7 @@ const delete_db = async() => {
     return prom;
 }
 
-const query_db = (year, title_searched, rating_searched) => {    //add rating to query, allow query with null in one of the fields
+const query_db = (year, title_searched, rating_searched) => {
     console.log("Querying for movies from " + year + " with titles starting with " 
         + title_searched + " and ratings greater than " + rating_searched);
 
