@@ -79,7 +79,7 @@
     });
 
     async function create_delete(action) {
-        app.show_query = false;
+        app.show_table = false;
 
         let url = 'http://localhost:8080/' + action
 
@@ -94,7 +94,7 @@
             .then(response => response.json())
             .then(data => {
                 app.server_response = data.message;
-                app.show_response = true;        //add code to change this back to false after 5 sec
+                app.show_response = true;
                 setTimeout(function() {
                     app.show_response = false;
                 }, 5000);
@@ -117,7 +117,7 @@
             .then(data => {
                 console.log(data.message);
                 app.table_data = data.message;
-                app.show_table = true;        //add code to change this back to false after 5 sec
+                app.show_table = true;
             })
             .catch(error => console.log('error', error));
     }

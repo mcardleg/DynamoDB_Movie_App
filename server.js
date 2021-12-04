@@ -46,7 +46,7 @@ const get_from_s3 = async() => {    //Returns with movie data from S3 Bucket.
     return object;
 }
 
-const populate_tables = (movies) => {   //Puts year, title, rating and primary genre into the table
+const populate_tables = (movies) => {
     let prom;
     console.log("Importing movies into DynamoDB. Please wait.");
 
@@ -90,13 +90,13 @@ const create_db = async() => {  //Checks if db already exists, if not calls crea
     return prom;
 };
 
-const delete_db = async() => {  //checks if db exists, if so deletes the table.
+const delete_db = async() => {  //Checks if db exists, if so deletes the table. Returns response to send to client.
     let prom = await new Promise(resolve => {
         dynamodb.describeTable({TableName:"Movies"}, async function(err,result) { // Using describeTable to check if the table exists.
             if(err){   // If describeTable throws an error, it means the table does not exists.
                 resolve("Table does not exist.");
             }
-            else{       // If describeTable throws an error, the table exists, the function proceeds to delete the table.
+            else{       // If describeTable throws an error, the table exists.
                 var params = {
                     TableName : "Movies"
                 };
@@ -116,7 +116,7 @@ const delete_db = async() => {  //checks if db exists, if so deletes the table.
     return prom;
 }
 
-const query_db = (year, title_searched, rating_searched) => {
+const query_db = (year, title_searched, rating_searched) => {   //Sends query to DynamoDB. Returns array of movies that satify it.
     console.log("Querying for movies from " + year + " with titles starting with " 
         + title_searched + " and ratings greater than " + rating_searched);
 
@@ -150,7 +150,7 @@ const query_db = (year, title_searched, rating_searched) => {
     return prom;
 }
 
-const server = async() => {
+const server = async() => { //Creates server and listens. Html file, create, query and delete GETS handled.
     const port = 8080;
     var app = express();
     app.use(bodyParser.urlencoded({ extended: true }));
