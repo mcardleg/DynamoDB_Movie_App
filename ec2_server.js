@@ -17,8 +17,8 @@ const create_tables = () => {   //Creates Movie table, with year and title as ke
             { AttributeName: "title", KeyType: "RANGE" }
         ],
         AttributeDefinitions: [       
-            { AttributeName: "year", AttributeType: "N" },
-            { AttributeName: "title", AttributeType: "S" }
+            { AttributeName: "year", AttributeType: "M" },
+            { AttributeName: "title", AttributeType: "M" }
         ],
         ProvisionedThroughput: {       
             ReadCapacityUnits: 20, 
