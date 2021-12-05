@@ -81,7 +81,7 @@
     async function create_delete(action) {
         app.show_table = false;
 
-        let url = window.location.href + action
+        let url = window.location.href.slice(0,-6) + action;        //replaces "client" with "create" or "delete"
 
         var requestOptions = {
             method: 'GET',
