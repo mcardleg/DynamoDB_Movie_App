@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Movie Database</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+</head>
+
+<body>
+
+    <div class="app">
+        <br><br>
+        <button type="button" v-on:click="create_delete('create')">Create Database</button>
+        <button type="button" v-on:click="create_delete('delete')">Delete Database</button>
+        <br><br><br><br><br>
+        <span>Year:</span>
+        <br>
+        <input v-model="year">
+        <br><br>
+        <span>Title:</span>
+        <br>
+        <input v-model="title">
+        <br><br>
+        <span>Rating:</span>
+        <br>
+        <input v-model="rating">
+        <br><br>
+        <button type="button" v-on:click="send_query()">Query Database</button>
+        <br><br><br><br><br><br>
+
+        <input type="hidden" ref="results_ref">
+        <span v-if="show_response">{{server_response}}</span>
+        <br><br><br>
+
+        <table v-if="show_table">
+            <tr>
+                <th>Title</th>
+                <th>Year Of Release</th>
+                <th>Rating</th>
+                <th>Genre</th>
+            </tr>
+
+            <tr v-for="value in table_data" :key="value.field">
+                <td>{{value.title}}</td>
+                <td>{{value.year}}</td>
+                <td>{{value.rating}}</td>
+                <td>{{value.genre[0]}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <style>
+        table{
+            border-collapse:collapse;
+            width: 60%;
+        }
+        td, th {
+            border:1px solid #000000;
+            text-align: center;
+        }
+    </style>
+
+    <script>
+    
+    var app = new Vue({
+        el: ".app",
+        data: {
+            year: null,
+            title: null,
+            rating: null,
+            show_response: false,
+            server_response: '',
+            show_table: false,
+            table_data:{}
+        },
+        methods: {
+            create_delete: create_delete,
+            send_query: send_query
+        }
+    });
+
+    async function create_delete(action) {
+        app.show_table = false;
+
+        let url = window.location.href + action
+
+        var requestOptions = {
+            method: 'GET',
+            redirect: 'follow',
+        };
+
+        console.log("Telling server to " + action + " database.");
+
+        let prom = await fetch(url, requestOptions).catch(error => console.log('error', error))
+            .then(response => response.json())
+            .then(data => {
+                app.server_response = data.message;
+                app.show_response = true;
+                setTimeout(function() {
+                    app.show_response = false;
+                }, 5000);
+            })
+            .catch(error => console.log('error', error));
+    }
+
+    async function send_query() {
+        let url = window.location.href + '/query/?year=' + this.year + '&title=' + this.title + '&rating=' + this.rating;
+
+        var requestOptions = {
+            method: 'GET',
+            redirect: 'follow',
+        };
+
+        console.log("Telling server to query database.");
+
+        let prom = await fetch(url, requestOptions).catch(error => console.log('error', error))
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+                app.table_data = data.message;
+                app.show_table = true;
+            })
+            .catch(error => console.log('error', error));
+    }
+
+    </script>
+</body>
+
+</html>

@@ -162,7 +162,7 @@ const server = async() => { //Creates server and listens. Html file, create, que
     
 
     app.get('/client', (req, res) => {
-        res.sendFile('./movieclient.html', { root: __dirname });
+        res.sendFile('./ec2_client.html', { root: __dirname });
     });
     
     app.get('/create', async(req, res) => {
