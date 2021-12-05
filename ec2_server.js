@@ -43,6 +43,7 @@ const get_from_s3 = async() => {    //Returns with movie data from S3 Bucket.
     }
 
     const object = (await (s3.getObject(params).promise())).Body.toString('utf-8');
+    console.log(object);
     return object;
 }
 
