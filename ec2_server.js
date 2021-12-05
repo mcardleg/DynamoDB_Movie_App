@@ -57,10 +57,10 @@ const populate_tables = (movies) => {
         var params = {
             TableName: "Movies",
             Item: {
-                "year":  {N: movie.year},
-                "title": {S: movie.title},
-                "rating":  {N: movie.info.rating},
-                "genre": {S: movie.info.genres}
+                "year":  movie.year,
+                "title": movie.title,
+                "rating":  movie.info.rating,
+                "genre": movie.info.genres
             }
         };
 
