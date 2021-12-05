@@ -161,7 +161,7 @@ const server = async() => { //Creates server and listens. Html file, create, que
     app.use(express.static(publicPath))
     
 
-    app.get('/', (req, res) => {
+    app.get('/client', (req, res) => {
         res.sendFile('./movieclient.html', { root: __dirname });
     });
     
