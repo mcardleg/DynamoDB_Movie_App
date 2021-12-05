@@ -103,7 +103,7 @@
     }
 
     async function send_query() {
-        let url = window.location.href + '/query/?year=' + this.year + '&title=' + this.title + '&rating=' + this.rating;
+        let url = window.location.href.slice(0,-6) + '/query/?year=' + this.year + '&title=' + this.title + '&rating=' + this.rating;
 
         var requestOptions = {
             method: 'GET',
