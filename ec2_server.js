@@ -10,6 +10,7 @@ var docClient = new AWS.DynamoDB.DocumentClient();
 
 
 const create_tables = () => {   //Creates Movie table, with year and title as key.
+    console.log("creating table");
     var params = {
         TableName : "Movies",
         KeySchema: [       
@@ -17,8 +18,8 @@ const create_tables = () => {   //Creates Movie table, with year and title as ke
             { AttributeName: "title", KeyType: "RANGE" }
         ],
         AttributeDefinitions: [       
-            { AttributeName: "year", AttributeType: "M" },
-            { AttributeName: "title", AttributeType: "M" }
+            { AttributeName: "year", AttributeType: "N" },
+            { AttributeName: "title", AttributeType: "S" }
         ],
         ProvisionedThroughput: {       
             ReadCapacityUnits: 20, 
@@ -67,6 +68,9 @@ const populate_tables = (movies) => {
             if (err) {
                 console.error("Unable to add movie", movie.title, ". Error JSON:", JSON.stringify(err, null, 2));
             } 
+            else {
+                console.log("Inserted " + movie.title);
+            }
         }).promise().catch(error => console.log('error', error));
     });
 
